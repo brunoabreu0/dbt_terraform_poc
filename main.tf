@@ -63,6 +63,12 @@ resource "aws_iam_role_policy_attachment" "dbt_poc_task_exec_role_policy_attachm
   policy_arn = data.aws_iam_policy.ecs_task_aws_managed_policy.arn
 }
 
+resource "aws_cloudwatch_log_group" "dbt_poc_task_log_group" {
+  name              = "dbt-poc-task-log-group"
+  skip_destroy      = true
+  retention_in_days = 1
+}
+
 resource "aws_ecs_task_definition" "dbt_poc_task" {
   family                   = "dbt-poc-task"
   network_mode             = "awsvpc"
@@ -70,14 +76,18 @@ resource "aws_ecs_task_definition" "dbt_poc_task" {
   cpu                      = 1024
   memory                   = 2048
   execution_role_arn       = aws_iam_role.dbt_poc_task_exec_role.arn
-  container_definitions    = <<TASK_DEFINITION
-[
-  {
-    "name": "dbt-poc-container",
-    "image": "981619280753.dkr.ecr.eu-west-1.amazonaws.com/dbt_poc_repo:latest",
-    "cpu": 1024,
-    "memory": 2048
-  }
-]
-TASK_DEFINITION
+  container_definitions    = jsonencode([{
+    name = "dbt-poc-container"
+    image = "981619280753.dkr.ecr.eu-west-1.amazonaws.com/dbt_poc_repo:latest"
+    cpu = 1024
+    memory = 2048
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group = aws_cloudwatch_log_group.dbt_poc_task_log_group.name
+        awslogs-region = "eu-west-1"
+        awslogs-stream-prefix = "dbt_poc"
+      }
+    }
+  }])
 }
