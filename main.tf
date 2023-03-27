@@ -69,7 +69,7 @@ resource "aws_ecs_task_definition" "dbt_poc_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = 1024
   memory                   = 2048
-  execution_role_arn       = ""
+  execution_role_arn       = aws_iam_role.dbt_poc_task_exec_role.arn
   container_definitions    = <<TASK_DEFINITION
 [
   {
