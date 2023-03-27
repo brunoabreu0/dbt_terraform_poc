@@ -37,12 +37,39 @@ resource "aws_ecs_cluster" "dbt_poc_cluster" {
   name = "dbt-poc-cluster"
 }
 
+data "aws_iam_policy" "ecs_task_aws_managed_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role" "dbt_poc_task_exec_role" {
+  name               = "dbt-poc-task-exec-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Sid       = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "dbt_poc_task_exec_role_policy_attachment" {
+  role       = aws_iam_role.dbt_poc_task_exec_role.name
+  policy_arn = data.aws_iam_policy.ecs_task_aws_managed_policy.arn
+}
+
 resource "aws_ecs_task_definition" "dbt_poc_task" {
   family                   = "dbt-poc-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 1024
   memory                   = 2048
+  execution_role_arn       = ""
   container_definitions    = <<TASK_DEFINITION
 [
   {
