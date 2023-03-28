@@ -33,6 +33,10 @@ resource "aws_secretsmanager_secret" "snowflake_password" {
   name = "dbt_poc_snowflake_password"
 }
 
+resource "aws_s3_bucket" "dbt_poc_envs_bucket" {
+  bucket = "dbt-poc-envs"
+}
+
 resource "aws_ecs_cluster" "dbt_poc_cluster" {
   name = "dbt-poc-cluster"
 }
@@ -53,6 +57,26 @@ resource "aws_iam_role" "dbt_poc_task_exec_role" {
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "dbt_poc_task_exec_role_policy_attachment" {
+  role       = aws_iam_role.dbt_poc_task_exec_role.name
+  policy_arn = data.aws_iam_policy.ecs_task_aws_managed_policy.arn
+}
+
+resource "aws_iam_role_policy" "dbt_poc_task_exec_role_policy" {
+  name   = "dbt-poc-task-exec-role-policy"
+  role   = aws_iam_role.dbt_poc_task_exec_role.id
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action   = "s3:GetObject"
+        Resource = aws_s3_bucket.dbt_poc_envs_bucket.arn
+        Effect   = "Allow"
       }
     ]
   })
@@ -90,11 +114,6 @@ resource "aws_iam_role_policy" "dbt_poc_task_container_role_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "dbt_poc_task_exec_role_policy_attachment" {
-  role       = aws_iam_role.dbt_poc_task_exec_role.name
-  policy_arn = data.aws_iam_policy.ecs_task_aws_managed_policy.arn
-}
-
 resource "aws_cloudwatch_log_group" "dbt_poc_task_log_group" {
   name              = "dbt-poc-task-log-group"
   skip_destroy      = true
@@ -126,3 +145,4 @@ resource "aws_ecs_task_definition" "dbt_poc_task" {
     }
   ])
 }
+
