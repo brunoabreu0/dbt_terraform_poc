@@ -109,6 +109,11 @@ resource "aws_iam_role_policy" "dbt_poc_task_container_role_policy" {
         Action   = "secretsmanager:GetSecretValue"
         Resource = aws_secretsmanager_secret.snowflake_password.arn
         Effect   = "Allow"
+      },
+      {
+        Action   = "s3:GetObject"
+        Resource = aws_s3_bucket.dbt_poc_envs_bucket.arn
+        Effect   = "Allow"
       }
     ]
   })
